@@ -8,8 +8,6 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
@@ -79,8 +77,22 @@ public class CrashCommand {
             items.add(book);
         }
         blockEntityTag.put("Items", items);
-        shulker.setNbt(new NbtCompound());
-        shulker.getNbt().put("BlockEntityTag", blockEntityTag);
+        // Set the BlockEntityTag NBT for the shulker box
+        NbtCompound tag = null;
+        try {
+            java.lang.reflect.Field tagField = ItemStack.class.getDeclaredField("nbt");
+            tagField.setAccessible(true);
+            tag = (NbtCompound) tagField.get(shulker);
+            if (tag == null) {
+                tag = new NbtCompound();
+                tagField.set(shulker, tag);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (tag != null) {
+            tag.put("BlockEntityTag", blockEntityTag);
+        }
         target.giveItemStack(shulker);
         context.getSource().sendFeedback(() -> Text.literal("Crashed " + playerName + " with a shulker box!"), false);
         return Command.SINGLE_SUCCESS;
